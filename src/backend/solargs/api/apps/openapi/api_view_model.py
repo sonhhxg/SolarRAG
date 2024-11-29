@@ -1,0 +1,110 @@
+import time
+import uuid
+from typing import Any, Generic, List, Literal, Optional, TypeVar
+
+from solargs._private.pydantic import BaseModel, Field
+from solargs.api.model import RetCode
+T = TypeVar("T")
+
+
+class Result(Generic[T], BaseModel):
+    success: bool
+    code: int = None
+    message: str = None
+    data: T = None
+
+    @classmethod
+    def succ(cls, data: T,message=None,code:int = RetCode.SUCCESS.value):
+        return Result(success=True,code=code, message=message, data=data)
+
+    @classmethod
+    def failed(cls,message=None,code:int = RetCode.NOT_EFFECTIVE.value):
+        return Result(success=False,code=code, message=message, data=None)
+
+
+
+class ChatSceneVo(BaseModel):
+    chat_scene: str = Field(..., description="chat_scene")
+    scene_name: str = Field(..., description="chat_scene name show for user")
+    scene_describe: str = Field("", description="chat_scene describe ")
+    param_title: str = Field("", description="chat_scene required parameter title")
+    show_disable: bool = Field(False, description="chat_scene show disable")
+
+
+class ConversationVo(BaseModel):
+    """
+    dialogue_uid
+    """
+
+    conv_uid: str = ""
+    """ 
+    user input 
+    """
+    user_input: str = ""
+    """
+    user
+    """
+    user_name: str = None
+    """ 
+    the scene of chat 
+    """
+    chat_mode: str = ""
+
+    """
+    chat scene select param 
+    """
+    select_param: str = None
+    """
+    llm model name
+    """
+    model_name: str = None
+
+    """Used to control whether the content is returned incrementally or in full each time. 
+    If this parameter is not provided, the default is full return.
+    """
+    incremental: bool = False
+
+    sys_code: Optional[str] = None
+
+
+class MessageVo(BaseModel):
+    """
+    role that sends out the current message
+    """
+
+    role: str
+    """
+    current message 
+    """
+    context: str
+
+    """ message postion order """
+    order: int
+
+    """
+    time the current message was sent 
+    """
+    time_stamp: Any = None
+
+    """
+    model_name
+    """
+    model_name: str
+
+
+class DeltaMessage(BaseModel):
+    role: Optional[str] = None
+    content: Optional[str] = None
+
+
+class ChatCompletionResponseStreamChoice(BaseModel):
+    index: int
+    delta: DeltaMessage
+    finish_reason: Optional[Literal["stop", "length"]] = None
+
+
+class ChatCompletionStreamResponse(BaseModel):
+    id: str = Field(default_factory=lambda: f"chatcmpl-{str(uuid.uuid1())}")
+    created: int = Field(default_factory=lambda: int(time.time()))
+    model: str
+    choices: List[ChatCompletionResponseStreamChoice]
